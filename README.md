@@ -1,0 +1,4 @@
+这是一个janusgraph入门的项目，有janusgraph一些常用的操作  
+查询建议使用gremlin进行查询，对于janusgraph的schema的操作建议使用内嵌模式
+在docker文件夹中有janusgraph+cql+elasticsearch 的docker-compose文件能帮助你快速搭建开发环境  
+有任何问题可以联系我fenglex@126.com
