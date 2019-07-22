@@ -1,0 +1,50 @@
+version: '2'
+services:
+  es:
+    image: elasticsearch:6.6.0
+    container_name: "es"
+    hostname: "es"
+    tty: true
+    environment:
+      - 'discovery.type=single-node'
+    volumes:
+      - '~/tmp/janusgraph-cql/es/:/usr/share/elasticsearch/data/'
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    networks:
+      graph:
+        ipv4_address: 192.168.21.12
+  cassandra:
+    image: cassandra:3.11.0
+    container_name: "cassandra"
+    hostname: "cassandra"
+    ports:
+      - "7000:7000"
+      - "7199:7199"
+      - "9042:9042"
+    networks:
+      graph:
+        ipv4_address: 192.168.21.11
+    tty: true
+    volumes:
+      - '~/tmp/janusgraph-cql/cassandra/:/var/lib/cassandra/'
+  gremlin:
+    build: ./gremlin/
+    container_name: "gremlin"
+    hostname: "gremlin"
+    depends_on:
+      - "cassandra"
+      - "es"
+    ports:
+      - "8182:8182"
+    networks:
+      graph:
+        ipv4_address: 192.168.21.13
+
+networks:
+  graph:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.21.0/24
