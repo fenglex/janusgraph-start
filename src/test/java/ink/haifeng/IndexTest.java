@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import static org.janusgraph.core.attribute.Text.textFuzzy;
@@ -95,6 +96,47 @@ public class IndexTest {
         management.commit();
     }
 
+
+    @Test
+    public void enableIndex() {
+        String indexName = "index_l";
+        JanusGraphManagement management = graph.openManagement();
+        Set<String> openInstances = management.getOpenInstances();
+        for (String instance : openInstances) {
+            if (!instance.contains("current")) {
+                management.forceCloseInstance(instance);
+            }
+        }
+        JanusGraphIndex graphIndex = management.getGraphIndex(indexName);
+        PropertyKey[] fieldKeys = graphIndex.getFieldKeys();
+        SchemaStatus status = graphIndex.getIndexStatus(fieldKeys[0]);
+        switch (status) {
+            case INSTALLED:
+                try {
+                    graphIndex = management.getGraphIndex(indexName);
+                    management.updateIndex(graphIndex, SchemaAction.REGISTER_INDEX).get();
+                    management.commit();
+                    graph.tx().commit();
+                    ManagementSystem.awaitGraphIndexStatus(graph, indexName).status(SchemaStatus.REGISTERED).call();
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            case REGISTERED:
+                try {
+                    if (!management.isOpen()) {
+                        management = graph.openManagement();
+                    }
+                    graphIndex = management.getGraphIndex(indexName);
+                    management.updateIndex(graphIndex, SchemaAction.ENABLE_INDEX).get();
+                    management.commit();
+                    graph.tx().commit();
+                    ManagementSystem.awaitGraphIndexStatus(graph, indexName).status(SchemaStatus.ENABLED).call();
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            default:
+        }
+    }
 
     @Test
     public void printSchema() {
